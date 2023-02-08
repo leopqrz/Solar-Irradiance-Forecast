@@ -1,0 +1,17 @@
+name: dashboard
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip=22.3.1
+  - python=3.8.14
+  - pip:
+    - IPython==8.7.0
+    - numpy==1.22.3
+    - openpyxl==3.0.10
+    - pandas==1.5.1
+    - plotly==5.11.0
+    - seaborn==0.11.0
+    - sklearn==0.0
+    - streamlit==1.15.1
+    - xgboost==1.7.1
