@@ -2,7 +2,7 @@
 # Solar Irradiance Forecasting
 ---
 
-**Predicts the solar irradiance for 7 days ahead with Streamlit** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://charity-class.streamlit.app/)
+**Predicts the solar irradiance for 7 days ahead with Streamlit** [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://solar-irradiance-forecast.streamlit.app/)
 <br>
 
 > :warning: **This code is still under development.**
