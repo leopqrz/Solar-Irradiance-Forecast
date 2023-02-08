@@ -8,22 +8,31 @@ import datetime as dt
 
 class Solar:
     """
-    This class enables data loading, plotting and statistical analysis of a given feature,
+    Enables data loading, plotting and statistical analysis of a given feature,
      upon initialization load a sample of data to check if feature exists. 
         
     """
 
-    def __init__(self, symbol="GHI", unit='KW-hr/m^2/day'):        
+    def __init__(self, symbol="GHI", unit='KW-hr/m^2/day'):
         self.symbol = symbol
         self.unit = unit
 
-    @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it. 
+    @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it.
     def load_full_data(self):
-        full_data = pd.read_csv('data/NASA_Dataset_Cleaned.csv', index_col = 'DATETIME', parse_dates=['DATETIME', 'DATETIME'])        
+        """_summary_
+
+        :return: _description_
+        """
+        full_data = pd.read_csv('data/NASA_Dataset_Cleaned.csv', index_col = 'DATETIME', parse_dates=['DATETIME', 'DATETIME'])
         return full_data
 
 
     def create_features(self, df):
+        """_summary_
+
+        :param df: _description_
+        :return: _description_
+        """
         data = self.load_full_data()
         target_map = data[self.symbol].to_dict()
         df['lag0'] = (df.index - pd.Timedelta('5 hours')).map(target_map)
@@ -52,9 +61,9 @@ class Solar:
 
     def load_data(self, start, end, scaler=False):
         """
-        takes a start and end dates, download data do some processing and returns dataframe
+        takes a start and end dates, download data do some 
+        processing and returns dataframe
         """
-
         full_data = self.load_full_data()
         self.start = start
         self.end = end
@@ -87,6 +96,8 @@ class Solar:
 
     # @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it. 
     def model(self):
+        """_summary_
+        """
         xgbtunedreg = xgb.Booster()
         xgbtunedreg.load_model(f"models/xgb_model_{self.symbol}.json")
         best_ntree = xgbtunedreg.best_ntree_limit
