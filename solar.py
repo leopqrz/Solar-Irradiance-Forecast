@@ -1,34 +1,38 @@
+"""_summary_."""
+import datetime as dt
 import numpy as np
-import streamlit as st
-import plotly.graph_objects as go
 import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
 import xgboost as xgb
 from sklearn.preprocessing import StandardScaler
-import datetime as dt
+
 
 class Solar:
     """
-    Enables data loading, plotting and statistical analysis of a given feature,
-     upon initialization load a sample of data to check if feature exists. 
-        
+    Enables data loading, plotting and statistical analysis of a given feature.
+
+    Upon initialization load a sample of data to check if feature exists.
     """
 
-    def __init__(self, symbol="GHI", unit='KW-hr/m^2/day'):
+    def __init__(self, symbol='GHI', unit='KW-hr/m^2/day'):
+        """_summary_."""
         self.symbol = symbol
         self.unit = unit
 
-    @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it.
+    # Using st.cache allows st to load the data once and cache it.
+    @st.cache(show_spinner=False)
     def load_full_data(self):
-        """_summary_
+        """_summary_.
 
         :return: _description_
         """
-        full_data = pd.read_csv('data/NASA_Dataset_Cleaned.csv', index_col = 'DATETIME', parse_dates=['DATETIME', 'DATETIME'])
+        full_data = pd.read_csv('data/NASA_Dataset_Cleaned.csv',
+                                index_col='DATETIME', parse_dates=['DATETIME', 'DATETIME'])
         return full_data
 
-
     def create_features(self, df):
-        """_summary_
+        """_summary_.
 
         :param df: _description_
         :return: _description_
@@ -45,7 +49,7 @@ class Solar:
         df['lag7'] = (df.index - pd.Timedelta('13 days')).map(target_map)
         df['lag8'] = (df.index - pd.Timedelta('364 days')).map(target_map)
         df['lag9'] = (df.index - pd.Timedelta('728 days')).map(target_map)
-        df['lag10'] = (df.index - pd.Timedelta('1092 days')).map(target_map)  
+        df['lag10'] = (df.index - pd.Timedelta('1092 days')).map(target_map)
 
         df['date'] = df.index
         df['hour'] = df['date'].dt.hour
@@ -61,25 +65,28 @@ class Solar:
 
     def load_data(self, start, end, scaler=False):
         """
-        takes a start and end dates, download data do some 
-        processing and returns dataframe
+        Take a start and end dates and download the data.
+
+        Process the data and returns the dataframe.
         """
         full_data = self.load_full_data()
         self.start = start
         self.end = end
 
-        index = pd.date_range(start=full_data.index[-1] + dt.timedelta(hours=1), end=self.end, freq='H')
+        index = pd.date_range(
+            start=full_data.index[-1] + dt.timedelta(hours=1), end=self.end, freq='H')
         columns = full_data.columns
         df = pd.DataFrame(index=index, columns=columns)
-            
+
         full_data = pd.concat([full_data, df])
         full_data = self.create_features(full_data)
         if scaler:
             # not adding year variable here because the model will use the most recent lag energy consumption values
             cols_to_transform = ['T2MDEW', 'DIFFUSE_ILLUMINANCE', 'DIRECT_ILLUMINANCE',
-            'GLOBAL_ILLUMINANCE', 'RH2M', 'QV2M', 'PS', 'T2M', 'SZA', 'WS2M'] # other columns are binary values
+                                 'GLOBAL_ILLUMINANCE', 'RH2M', 'QV2M', 'PS', 'T2M', 'SZA', 'WS2M']  # other columns are binary values
             scaler = StandardScaler()
-            full_data[cols_to_transform] = scaler.fit_transform(full_data[cols_to_transform])
+            full_data[cols_to_transform] = scaler.fit_transform(
+                full_data[cols_to_transform])
 
         data = full_data[start:end]
         # data['date'] = data.index
@@ -88,18 +95,17 @@ class Solar:
         try:
             assert len(data) > 0
         except AssertionError:
-            print("Cannot fetch data, check spelling or time window")
-        data.reset_index(inplace=True)        
+            print('Cannot fetch data, check spelling or time window')
+        data.reset_index(inplace=True)
         self.data = data
         # return self.data
 
+    # @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it.
 
-    # @st.cache(show_spinner=False) #Using st.cache allows st to load the data once and cache it. 
     def model(self):
-        """_summary_
-        """
+        """_summary_."""
         xgbtunedreg = xgb.Booster()
-        xgbtunedreg.load_model(f"models/xgb_model_{self.symbol}.json")
+        xgbtunedreg.load_model(f'models/xgb_model_{self.symbol}.json')
         best_ntree = xgbtunedreg.best_ntree_limit
 
         # Scale
@@ -113,21 +119,18 @@ class Solar:
         self.preds = xgbtunedreg.predict(test, ntree_limit=best_ntree)
         self.data['preds'] = self.preds
 
-    def plot_raw_data(self, type:str='chart', forecast=False):
-        """
-        Plot plotly time series chart of a selected feature on a given plotly.graph_objects.Figure object
-        """
-        
+    def plot_raw_data(self, type: str = 'chart', forecast=False):
+        """Plot plotly time series chart of a selected feature."""
         fig = go.Figure()
 
-        if type=='chart':
+        if type == 'chart':
 
             fig = fig.add_trace(
                 go.Scatter(
-                    x=self.data['date'], 
-                    y=self.data[self.symbol], 
-                    name=f"Observed {self.symbol}",
-                    # line_color='deepskyblue', 
+                    x=self.data['date'],
+                    y=self.data[self.symbol],
+                    name=f'Observed {self.symbol}',
+                    # line_color='deepskyblue',
                     opacity=0.6))
 
             if forecast:
@@ -135,68 +138,67 @@ class Solar:
 
                 fig = fig.add_trace(
                     go.Scatter(
-                        x=self.data['date'], 
-                        y=self.data['preds'], 
-                        name=f"Predicted {self.symbol}",
-                        # line_color='orange', 
+                        x=self.data['date'],
+                        y=self.data['preds'],
+                        name=f'Predicted {self.symbol}',
+                        # line_color='orange',
                         opacity=0.6))
 
-
-            fig = fig.update_layout( 
+            fig = fig.update_layout(
                 xaxis=dict(
                     rangeselector=dict(
                         buttons=list([
-                            dict(step="all"),
+                            dict(step='all'),
                             dict(count=1,
-                                label="1y",
-                                step="year",
-                                stepmode="backward"),
+                                 label='1y',
+                                 step='year',
+                                 stepmode='backward'),
                             dict(count=6,
-                                label="6m",
-                                step="month",
-                                stepmode="backward"),
+                                 label='6m',
+                                 step='month',
+                                 stepmode='backward'),
                             dict(count=1,
-                                label="1m",
-                                step="month",
-                                stepmode="backward"),
+                                 label='1m',
+                                 step='month',
+                                 stepmode='backward'),
                             dict(count=7,
-                                label="7d",
-                                step="day",
-                                stepmode="backward"),
+                                 label='7d',
+                                 step='day',
+                                 stepmode='backward'),
                         ])
                     ),
-                    type="date",
+                    type='date',
                     rangeslider=dict(visible=True),
                 ),
-                xaxis_title="Date",
-                yaxis_title=f"{self.symbol} ({self.unit})"
+                xaxis_title='Date',
+                yaxis_title=f'{self.symbol} ({self.unit})'
             )
-        elif type=='hist':
+        elif type == 'hist':
             fig = fig.add_trace(
                 go.Histogram(
                     x=self.data[self.symbol],
                     name=self.symbol,
-                    opacity = 0.5))
+                    opacity=0.5))
             fig = fig.update_layout(
-                xaxis_title=f"{self.unit}",
-                yaxis_title="count"
+                xaxis_title=f'{self.unit}',
+                yaxis_title='count'
             )
         else:
-            print('Invalid plot type!\nChoose one of the folowing plot types: chart or hist')
+            print(
+                'Invalid plot type!\nChoose one of the folowing plot types: chart or hist')
             return None
-
 
         fig = fig.update_layout(
             margin=dict(l=0, r=0, t=0, b=0, pad=0),
             legend=dict(
                 x=0.005,
                 y=0.99,
-                traceorder="normal",
+                traceorder='normal',
                 font=dict(size=12),
             ),
             showlegend=True,
             autosize=False,
-            template="plotly",
-            )
+            template='plotly',
+        )
 
         return fig
